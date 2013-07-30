@@ -6,3 +6,4 @@ nose>=1.2.1
 Paver>=1.2.1
 pep8>=1.4.4
 pylint>=0.28.0
+PyYAML>=3.10
