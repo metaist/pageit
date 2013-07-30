@@ -67,7 +67,8 @@ class Pageit(object):
             for dirname in [args.dest, args.tmp]:
                 if osp.isdir(dirname):
                     shutil.rmtree(dirname)
-                    print self.MSG_DELDIR.format(osp.basename(dirname))
+                    if not self.args.quiet:
+                        print self.MSG_DELDIR.format(osp.basename(dirname))
 
         self._tmpl = TemplateLookup(directories=[args.src],
                                     module_directory=args.tmp,
@@ -95,7 +96,8 @@ class Pageit(object):
 
     def skip_dir(self, name, src):
         '''Skip a directory.'''
-        print self.MSG_SKIPDIR.format(name, src)
+        if self.args.verbose:
+            print self.MSG_SKIPDIR.format(name, src)
         return self
 
     def create_dir(self, name, dest):
@@ -128,13 +130,15 @@ class Pageit(object):
 
     def skip_file(self, name, src, dest):
         '''Skip a file.'''
-        print self.MSG_SKIPFILE.format(name, src, dest)
+        if self.args.verbose:
+            print self.MSG_SKIPFILE.format(name, src, dest)
         return self
 
     def copy_file(self, name, src, dest):
         '''Copy a file.'''
         shutil.copy2(src, dest)
-        print self.MSG_COPYFILE.format(name, src, dest)
+        if not self.args.quiet:
+            print self.MSG_COPYFILE.format(name, src, dest)
         return self
 
     def render_file(self, name, src, dest):
@@ -143,7 +147,8 @@ class Pageit(object):
         with codecs.open(dest, encoding='utf-8', mode='w') as out:
             rendered = tmpl.render_unicode(site=self.site, page=Namespace())
             out.write(rendered)
-        print self.MSG_RENDERED.format(name, src, dest)
+        if not self.args.quiet:
+            print self.MSG_RENDERED.format(name, src, dest)
         return self
 
 
