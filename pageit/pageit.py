@@ -6,6 +6,7 @@
 from os import path as osp
 import argparse
 import codecs
+import logging
 import os
 import shutil
 
@@ -24,6 +25,7 @@ __status__ = 'Prototype'
 __version__ = '0.0.1'
 __version_info__ = tuple(__version__.split('.'))
 
+
 DEFAULT_ARGS = Namespace(
     config='config.yml',
     env='default',
@@ -39,41 +41,52 @@ DEFAULT_ARGS = Namespace(
     ignore_mtime=False
 )
 
+logging.basicConfig(format='%(message)s')
+DEFAULT_LOGGER = logging.getLogger('com.metaist.pageit')
+
+MSG_COPY = 'copy   {0}'
+MSG_DELETE = 'delete {0}'
+MSG_CREATE = 'create {0}'
+MSG_RENDER = 'render {0}'
+MSG_SKIP = 'skip   {0}'
+
 
 class Pageit(object):
     '''Site generator.'''
-    MSG_COPYFILE = 'copy   {0}'
-    MSG_DELDIR = 'delete {0}'
-    MSG_NEWDIR = 'create {0}'
-    MSG_RENDERED = 'render {0}'
-    MSG_SKIPDIR = 'skip   {0}'
-    MSG_SKIPFILE = 'skip   {0}'
-
     args, site = DEFAULT_ARGS, Namespace()
+    logger = DEFAULT_LOGGER
 
-    def __init__(self, args=None, site=None):
+    def __init__(self, args=None, site=None, logger=None):
         '''Construct a generator.
 
         >>> Pageit() is not None
         True
         '''
+        self.logger = logger or self.logger
         self.site += site
         self.args += args
         self.args += Namespace(src=osp.abspath(self.args.src),
                                dest=osp.abspath(self.args.dest))
         args = self.args  # shorthand
 
+        self.logger.setLevel(logging.INFO)
+        if args.quiet:
+            self.logger.setLevel(logging.NOTSET)
+        elif args.verbose:
+            self.logger.setLevel(logging.DEBUG)
+
         if args.init:  # delete existing directories
             for dirname in [args.dest, args.tmp]:
                 if osp.isdir(dirname):
                     shutil.rmtree(dirname)
-                    if not self.args.quiet:
-                        print self.MSG_DELDIR.format(osp.basename(dirname))
+                    self.logger.debug(MSG_DELETE.format(osp.basename(dirname)))
 
-        self._tmpl = TemplateLookup(directories=[args.src],
-                                    module_directory=args.tmp,
-                                    input_encoding='utf-8',
-                                    output_encoding='utf-8')
+        self._tmpl = TemplateLookup(
+            directories=[args.src],
+            module_directory=args.tmp,
+            input_encoding='utf-8',
+            output_encoding='utf-8'
+        )
 
     def run(self, src=None, dest=None):
         '''Generate the site.'''
@@ -96,15 +109,14 @@ class Pageit(object):
 
     def skip_dir(self, name, src):
         '''Skip a directory.'''
-        if self.args.verbose:
-            print self.MSG_SKIPDIR.format(name, src)
+        self.logger.debug(MSG_SKIP.format(name, src))
         return self
 
     def create_dir(self, name, dest):
         '''Create a directory.'''
         if not osp.isdir(dest):
             os.mkdir(dest)
-            print self.MSG_NEWDIR.format(name)
+            self.logger.info(MSG_CREATE.format(name))
         return self
 
     def process_dir(self, files, src, dest, relpath):
@@ -130,15 +142,13 @@ class Pageit(object):
 
     def skip_file(self, name, src, dest):
         '''Skip a file.'''
-        if self.args.verbose:
-            print self.MSG_SKIPFILE.format(name, src, dest)
+        self.logger.debug(MSG_SKIP.format(name, src, dest))
         return self
 
     def copy_file(self, name, src, dest):
         '''Copy a file.'''
         shutil.copy2(src, dest)
-        if not self.args.quiet:
-            print self.MSG_COPYFILE.format(name, src, dest)
+        self.logger.info(MSG_COPY.format(name, src, dest))
         return self
 
     def render_file(self, name, src, dest):
@@ -147,8 +157,7 @@ class Pageit(object):
         with codecs.open(dest, encoding='utf-8', mode='w') as out:
             rendered = tmpl.render_unicode(site=self.site, page=Namespace())
             out.write(rendered)
-        if not self.args.quiet:
-            print self.MSG_RENDERED.format(name, src, dest)
+        self.logger.info(MSG_RENDER.format(name, src, dest))
         return self
 
 
