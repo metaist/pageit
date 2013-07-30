@@ -117,7 +117,7 @@ class Pageit(object):
                 destfile = osp.join(dest, name[len(prefix):])
                 self.render_file(relfile, srcfile, destfile)
             else:
-                self.copy_file(relfile, srcfile, destfile)s
+                self.copy_file(relfile, srcfile, destfile)
         return self
 
     def skip_file(self, name, src, dest):
