@@ -73,7 +73,7 @@ class Namespace(collections.MutableMapping):
             elif isinstance(arg, object):
                 self.__dict__ = extend(self.__dict__, arg.__dict__)
             else:
-                print '[{0}] cannot be merged'.format(arg)
+                assert False, '[{0}] cannot be merged'.format(arg)
 
     def __contains__(self, name):
         """Returns True if name is in the Namespace.
