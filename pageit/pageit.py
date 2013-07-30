@@ -5,6 +5,7 @@
 
 from os import path as osp
 import argparse
+import codecs
 import os
 import shutil
 
@@ -69,7 +70,9 @@ class Pageit(object):
                     print self.MSG_DELDIR.format(osp.basename(dirname))
 
         self._tmpl = TemplateLookup(directories=[args.src],
-                                    module_directory=args.tmp)
+                                    module_directory=args.tmp,
+                                    input_encoding='utf-8',
+                                    output_encoding='utf-8')
 
     def run(self, src=None, dest=None):
         '''Generate the site.'''
@@ -93,7 +96,6 @@ class Pageit(object):
     def skip_dir(self, name, src):
         '''Skip a directory.'''
         print self.MSG_SKIPDIR.format(name, src)
-
         return self
 
     def create_dir(self, name, dest):
@@ -101,7 +103,6 @@ class Pageit(object):
         if not osp.isdir(dest):
             os.mkdir(dest)
             print self.MSG_NEWDIR.format(name)
-
         return self
 
     def process_dir(self, files, src, dest, relpath):
@@ -116,8 +117,7 @@ class Pageit(object):
                 destfile = osp.join(dest, name[len(prefix):])
                 self.render_file(relfile, srcfile, destfile)
             else:
-                self.copy_file(relfile, srcfile, destfile)
-
+                self.copy_file(relfile, srcfile, destfile)s
         return self
 
     def skip_file(self, name, src, dest):
@@ -138,8 +138,9 @@ class Pageit(object):
             return self.skip_file(name, src, dest)
 
         tmpl = self._tmpl.get_template(name)
-        with open(dest, 'w') as out:
-            print >> out, tmpl.render(site=self.site, page=Namespace())
+        with codecs.open(dest, encoding='utf-8', mode='w') as out:
+            rendered = tmpl.render_unicode(site=self.site, page=Namespace())
+            out.write(rendered)
         print self.MSG_RENDERED.format(name)
         return self
 
