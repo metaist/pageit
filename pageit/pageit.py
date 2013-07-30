@@ -112,12 +112,18 @@ class Pageit(object):
             srcfile = osp.join(src, name)
             destfile = osp.join(dest, name)
             relfile = osp.join(relpath, name)
+            process_file = self.copy_file  # copy unless rendering
 
             if name.startswith(prefix):
+                process_file = self.render_file
                 destfile = osp.join(dest, name[len(prefix):])
-                self.render_file(relfile, srcfile, destfile)
-            else:
-                self.copy_file(relfile, srcfile, destfile)
+
+            if (not self.args.ignore_mtime and osp.isfile(destfile) and
+                    osp.getmtime(srcfile) <= osp.getmtime(destfile)):
+                process_file = self.skip_file  # skip this older file
+
+            process_file(relfile, srcfile, destfile)
+
         return self
 
     def skip_file(self, name, src, dest):
@@ -128,20 +134,16 @@ class Pageit(object):
     def copy_file(self, name, src, dest):
         '''Copy a file.'''
         shutil.copy2(src, dest)
-        print self.MSG_COPYFILE.format(name)
+        print self.MSG_COPYFILE.format(name, src, dest)
         return self
 
     def render_file(self, name, src, dest):
         '''Render a file.'''
-        if (not self.args.ignore_mtime and osp.isfile(dest) and
-                osp.getmtime(src) <= osp.getmtime(dest)):  # file isn't newer
-            return self.skip_file(name, src, dest)
-
         tmpl = self._tmpl.get_template(name)
         with codecs.open(dest, encoding='utf-8', mode='w') as out:
             rendered = tmpl.render_unicode(site=self.site, page=Namespace())
             out.write(rendered)
-        print self.MSG_RENDERED.format(name)
+        print self.MSG_RENDERED.format(name, src, dest)
         return self
 
 
