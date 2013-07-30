@@ -203,7 +203,9 @@ def parse_config(path, env='default'):
 def main(args=None):  # pragma: no cover
     '''Main entry point.'''
     args = parse_args(args)
-    site = parse_config(args.config, args.env)
+    site = Namespace()
+    if osp.isfile(args.config):
+        site = parse_config(args.config, args.env)
     Pageit(args, site).run()
 
 
