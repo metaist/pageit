@@ -13,6 +13,16 @@ import yaml
 
 from lib import Namespace  # pylint: disable=W0403
 
+
+__author__ = 'The Metaist'
+__copyright__ = 'Copyright 2013, Metaist'
+__email__ = 'metaist@metaist.com'
+__license__ = 'MIT'
+__maintainer__ = 'The Metaist'
+__status__ = 'Prototype'
+__version__ = '0.0.1'
+__version_info__ = tuple(__version__.split('.'))
+
 DEFAULT_ARGS = Namespace(
     config='config.yml',
     env='default',
@@ -140,9 +150,10 @@ def parse_args(args=None):
     >>> parse_args(['-o', 'output']) is not None
     True
     '''
-    parser = argparse.ArgumentParser(prog='pageit.py', description=__doc__)
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    parser = argparse.ArgumentParser(prog='pageit', description=__doc__)
     parser.set_defaults(**DEFAULT_ARGS)  # pylint: disable=W0142
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s ' + __version__)
 
     group = parser.add_argument_group('configuration')
     group.add_argument('-f', '--config', metavar='FILE',

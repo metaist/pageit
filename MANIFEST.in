@@ -1,0 +1,4 @@
+include scripts/pageit
+include scripts/pageit.bat
+include LICENSE
+include README.markdown
