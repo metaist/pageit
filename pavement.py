@@ -17,6 +17,7 @@ from pageit.lib import Namespace
 
 IS_WINDOWS = sys.platform.startswith('win')
 
+
 def check_scripts(scripts):
     '''Add Windows scripts when needed.'''
     if IS_WINDOWS:
@@ -114,6 +115,7 @@ def _pylint():
     from pylint import lint
     args = ['pageit', '--rcfile=.pylint.ini']
     lint.Run(args, exit=False)
+
 
 @task
 @needs(['register', 'sdist', 'upload'])
