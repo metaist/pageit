@@ -6,6 +6,17 @@
 import collections
 
 
+def getattrs(obj, *names):
+    '''Return multiple attributes of an object.
+
+    >>> x = Namespace(a=1, b=2, c=3)
+    >>> a, c = getattrs(x, 'a', 'c')
+    >>> a == x.a and c == x.c
+    True
+    '''
+    return (getattr(obj, name) for name in names)
+
+
 def extend(*items):
     '''Extend a dictionary with a set of dictionaries.
 
