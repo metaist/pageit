@@ -28,7 +28,7 @@ def check_scripts(scripts):
 OPTS = Namespace(
     name='pageit',
     packages=['pageit'],
-    install_requires=['Mako', 'Markdown', 'PyYAML'],
+    install_requires=['Mako', 'Markdown', 'PyYAML', 'watchdog'],
     scripts=check_scripts(['scripts/pageit']),
     entry_points={'console_scripts': ['pageit = pageit.pageit:main']},
     version=pageit.__version__.replace('pre', ''),

@@ -10,9 +10,12 @@ import logging
 import os
 import re
 import shutil
+import time
 
 from mako.lookup import TemplateLookup
 import yaml
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 from lib import Namespace  # pylint: disable=W0403
 
@@ -39,6 +42,7 @@ DEFAULT_ARGS = Namespace(
     init=False,
     quiet=False,
     verbose=False,
+    watch=False,
     ignore_mtime=False
 )
 
@@ -52,6 +56,17 @@ MSG_RENDER = 'render {0}'
 MSG_SKIP = 'skip   {0}'
 
 RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit)\s+file="(.*)"')
+
+
+class PageitWatcher(FileSystemEventHandler):
+    '''Handler for changes to directories.'''
+    runner = None
+
+    def __init__(self, runner):
+        self.runner = runner
+
+    def on_modified(self, event):
+        self.runner.run()
 
 
 class Pageit(object):
@@ -231,6 +246,8 @@ def parse_args(args=None):
     group = parser.add_argument_group('switches')
     group.add_argument('-i', '--init', action='store_true',
                        help='delete existing outputs (default: %(default)s)')
+    group.add_argument('-w', '--watch', action='store_true',
+                       help='watch for changes (default: %(default)s)')
     group.add_argument('--ignore-mtime', action='store_true',
                        help='ignore timestamps (default: %(default)s)')
 
@@ -257,7 +274,21 @@ def main(args=None):  # pragma: no cover
     site = Namespace()
     if osp.isfile(args.config):
         site = parse_config(args.config, args.env)
-    Pageit(args, site).run()
+    runner = Pageit(args, site)
+    runner.run()  # run once
+
+    if args.watch:  # watch for changes
+        handler = PageitWatcher(runner)
+        observer = Observer()
+        observer.schedule(handler, path=args.src, recursive=True)
+        observer.start()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            observer.stop()
+            print ''
+        observer.join()
 
 
 if __name__ == '__main__':  # pragma: no cover
