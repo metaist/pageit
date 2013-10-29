@@ -8,6 +8,7 @@ import argparse
 import codecs
 import logging
 import os
+import re
 import shutil
 
 from mako.lookup import TemplateLookup
@@ -22,7 +23,7 @@ __email__ = 'metaist@metaist.com'
 __license__ = 'MIT'
 __maintainer__ = 'The Metaist'
 __status__ = 'Prototype'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __version_info__ = tuple(__version__.split('.'))
 
 
@@ -50,11 +51,14 @@ MSG_CREATE = 'create {0}'
 MSG_RENDER = 'render {0}'
 MSG_SKIP = 'skip   {0}'
 
+RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit)\s+file="(.*)"')
+
 
 class Pageit(object):
     '''Site generator.'''
     args, site = DEFAULT_ARGS, Namespace()
     logger = DEFAULT_LOGGER
+    mtimes = {}
 
     def __init__(self, args=None, site=None, logger=None):
         '''Construct a generator.
@@ -127,13 +131,15 @@ class Pageit(object):
             destfile = osp.join(dest, name)
             relfile = osp.join(relpath, name)
             process_file = self.copy_file  # copy unless rendering
+            change_time = int(osp.getmtime(srcfile))
 
             if name.startswith(prefix):
                 process_file = self.render_file
                 destfile = osp.join(dest, name[len(prefix):])
+                change_time = self.mako_mtime(srcfile)
 
             if (not self.args.ignore_mtime and osp.isfile(destfile) and
-                    osp.getmtime(srcfile) <= osp.getmtime(destfile)):
+                    change_time <= int(osp.getmtime(destfile))):
                 process_file = self.skip_file  # skip this older file
 
             process_file(relfile, srcfile, destfile)
@@ -159,6 +165,34 @@ class Pageit(object):
             out.write(rendered)
         self.logger.info(MSG_RENDER.format(name, src, dest))
         return self
+
+    def mako_mtime(self, path):
+        '''Return the latest mtime of a mako template and its dependencies.'''
+        path = osp.abspath(path)
+        if path in self.mtimes:
+            return self.mtimes[path]
+
+        result = int(osp.getmtime(path))
+        deps = mako_deps(path)
+        mtimes = [result] + [self.mako_mtime(dep) for dep in deps]
+        result = max(mtimes)
+
+        self.mtimes[path] = result
+        return result
+
+
+def mako_deps(path):
+    '''Returns list of dependencies for a mako template.'''
+    results = []
+    path = osp.abspath(path)
+    pathdir = osp.dirname(path)
+    for line in open(path):
+        groups = RE_MAKO_DEPENDENCY.search(line)  # look for imports
+        if groups:
+            dep = osp.abspath(osp.join(pathdir, groups.group(2)))
+            if dep not in results:
+                results.append(dep)
+    return results
 
 
 def parse_args(args=None):
