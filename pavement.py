@@ -68,8 +68,10 @@ def resolve():
 
 @task
 def clean():
-    paths = (glob('.coverage') + glob('MANIFEST') +
-             glob('dist/') + glob('build/') + glob('pageit.egg-info/'))
+    paths = (glob('dist/') + glob('build/') + glob('pageit.egg-info/') +
+             glob('MANIFEST') + glob('setup.py') + glob('.coverage') +
+             glob('paver-minilib.zip'))
+
     for pattern in ['*.pyc', '*.*~']:
         paths += glob(pattern) + glob('*/' + pattern)
 
@@ -118,6 +120,6 @@ def _pylint():
 
 
 @task
-@needs(['register', 'sdist', 'upload'])
+@needs(['minilib', 'generate_setup', 'sdist', 'upload'])
 def pypi():
     pass
