@@ -3,8 +3,10 @@ Pageit is a tool for generating static website similar to [Jekyll][jekyll] and
 [Hyde][hyde].
 
 ## Getting Started
-Clone the repository via `git clone git://github.com/metaist/pageit.git`
-or get [the latest code](https://github.com/metaist/pageit/zipball/master).
+Install the library using `pip install pageit`. 
+
+If you want the development version, get  [the latest code][gh-1] and build
+it using [Paver][gh-2].
 
 ## License
 Licensed under the [MIT License][osi-mit].
@@ -15,3 +17,6 @@ Licensed under the [MIT License][osi-mit].
 [jekyll]: https://github.com/mojombo/jekyll
 [osi-mit]: http://opensource.org/licenses/MIT
 [semver]: http://semver.org/
+[gh-1]: https://github.com/metaist/pageit/zipball/master
+[gh-2]: https://github.com/paver/paver
+
