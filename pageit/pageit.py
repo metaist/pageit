@@ -20,17 +20,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from lib import Namespace  # pylint: disable=W0403
-
-
-__author__ = 'The Metaist'
-__copyright__ = 'Copyright 2013, Metaist'
-__email__ = 'metaist@metaist.com'
-__license__ = 'MIT'
-__maintainer__ = 'The Metaist'
-__status__ = 'Prototype'
-__version__ = '0.0.3'
-__version_info__ = tuple(__version__.split('.'))
-
+import __init__ as package  # pylint: disable=W0403
 
 DEFAULT_ARGS = Namespace(
     config='config.yml',
@@ -223,7 +213,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(prog='pageit', description=__doc__)
     parser.set_defaults(**DEFAULT_ARGS)  # pylint: disable=W0142
     parser.add_argument('--version', action='version',
-                        version='%(prog)s ' + __version__)
+                        version='%(prog)s ' + package.__version__)
 
     group = parser.add_argument_group('configuration')
     group.add_argument('-f', '--config', metavar='FILE',

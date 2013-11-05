@@ -1,7 +1,6 @@
+include setup.py
 include scripts/pageit.bat
 include scripts/pageit
-include paver-minilib.zip
-include pavement.py
-include setup.py
-include LICENSE
+include requirements.txt
 include README.markdown
+include LICENSE

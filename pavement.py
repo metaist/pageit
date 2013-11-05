@@ -11,47 +11,9 @@ import shutil
 from paver.easy import *
 from paver.setuputils import setup
 
-sys.path.insert(0, '')
-from pageit import pageit
-from pageit.lib import Namespace
 
-IS_WINDOWS = sys.platform.startswith('win')
-
-
-def check_scripts(scripts):
-    '''Add Windows scripts when needed.'''
-    if IS_WINDOWS:
-        scripts += [script + '.bat' for script in scripts]
-    return scripts
-
-
-OPTS = Namespace(
-    name='pageit',
-    packages=['pageit'],
-    install_requires=['Mako', 'Markdown', 'PyYAML', 'watchdog'],
-    scripts=check_scripts(['scripts/pageit']),
-    entry_points={'console_scripts': ['pageit = pageit.pageit:main']},
-    version=pageit.__version__.replace('pre', ''),
-    author=pageit.__author__,
-    author_email=pageit.__email__,
-    url='https://github.com/metaist/pageit',
-    download_url='https://github.com/metaist/pageit',
-    description=pageit.__doc__.split('\n')[0],
-    long_description=pageit.__doc__,
-    keywords='static website',
-    license=pageit.__license__,
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Natural Language :: English',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2',
-        'License :: OSI Approved :: MIT License',
-        'Topic :: Software Development :: Libraries'
-    ]
-)
-
-setup(**OPTS)
+# Bring in setup.py
+exec(''.join([x for x in path('setup.py').lines() if 'setuptools' not in x]))
 
 
 @task
@@ -69,8 +31,7 @@ def resolve():
 @task
 def clean():
     paths = (glob('dist/') + glob('build/') + glob('pageit.egg-info/') +
-             glob('MANIFEST') + glob('setup.py') + glob('.coverage') +
-             glob('paver-minilib.zip'))
+             glob('MANIFEST') + glob('.coverage') + glob('paver-minilib.zip'))
 
     for pattern in ['*.pyc', '*.*~']:
         paths += glob(pattern) + glob('*/' + pattern)
@@ -120,6 +81,6 @@ def _pylint():
 
 
 @task
-@needs(['minilib', 'generate_setup', 'sdist', 'upload'])
+@needs(['sdist', 'upload'])
 def pypi():
     pass
