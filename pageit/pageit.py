@@ -4,13 +4,15 @@
 '''Static site generator.'''
 
 from os import path as osp
-import argparse
-import codecs
-import logging
-import os
-import re
-import shutil
 import time
+import SocketServer
+import SimpleHTTPServer
+import shutil
+import re
+import os
+import logging
+import codecs
+import argparse
 
 from mako.lookup import TemplateLookup
 import yaml
@@ -26,7 +28,7 @@ __email__ = 'metaist@metaist.com'
 __license__ = 'MIT'
 __maintainer__ = 'The Metaist'
 __status__ = 'Prototype'
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __version_info__ = tuple(__version__.split('.'))
 
 
@@ -63,9 +65,11 @@ class PageitWatcher(FileSystemEventHandler):
     runner = None
 
     def __init__(self, runner):
+        print '[WATCH] start watching', runner.args.src
         self.runner = runner
 
     def on_modified(self, event):
+        print '[WATCH] file changed', event.src_path
         self.runner.run()
 
 
@@ -124,7 +128,9 @@ class Pageit(object):
             destpath = osp.abspath(osp.join(dest, relpath))
             destbase = osp.basename(destpath)
             self.create_dir(relpath or destbase, destpath)  # dir exists
-            self.process_dir(files, srcpath, destpath, relpath)
+            #self.process_dir(files, srcpath, destpath, relpath)
+            for name in files:
+                self.process_file(name, srcpath, destpath, relpath)
 
     def skip_dir(self, name, src):
         '''Skip a directory.'''
@@ -138,28 +144,26 @@ class Pageit(object):
             self.logger.info(MSG_CREATE.format(name))
         return self
 
-    def process_dir(self, files, src, dest, relpath):
-        '''Process a directory.'''
+    def process_file(self, name, src, dest, relpath):
+        '''Process a file.'''
         prefix = self.args.mako_prefix
-        for name in files:
-            srcfile = osp.join(src, name)
-            destfile = osp.join(dest, name)
-            relfile = osp.join(relpath, name)
-            process_file = self.copy_file  # copy unless rendering
-            change_time = int(osp.getmtime(srcfile))
+        srcfile = osp.join(src, name)
+        destfile = osp.join(dest, name)
+        relfile = osp.join(relpath, name)
+        file_action = self.copy_file  # copy unless rendering
+        change_time = int(osp.getmtime(srcfile))
 
-            if name.startswith(prefix):
-                process_file = self.render_file
-                destfile = osp.join(dest, name[len(prefix):])
-                change_time = self.mako_mtime(srcfile)
+        if name.startswith(prefix):
+            file_action = self.render_file
+            destfile = osp.join(dest, name[len(prefix):])
+            self.mtimes = {}  # reset mtimes
+            change_time = self.mako_mtime(srcfile)
 
-            if (not self.args.ignore_mtime and osp.isfile(destfile) and
-                    change_time <= int(osp.getmtime(destfile))):
-                process_file = self.skip_file  # skip this older file
+        if (not self.args.ignore_mtime and osp.isfile(destfile) and
+                change_time <= int(osp.getmtime(destfile))):
+            file_action = self.skip_file  # skip this older file
 
-            process_file(relfile, srcfile, destfile)
-
-        return self
+        file_action(relfile, srcfile, destfile)
 
     def skip_file(self, name, src, dest):
         '''Skip a file.'''
@@ -248,6 +252,8 @@ def parse_args(args=None):
                        help='delete existing outputs (default: %(default)s)')
     group.add_argument('-w', '--watch', action='store_true',
                        help='watch for changes (default: %(default)s)')
+    group.add_argument('--serve', nargs='?', metavar='PORT', const=80,
+                       help='run simple HTTP server (default: %(default)s)')
     group.add_argument('--ignore-mtime', action='store_true',
                        help='ignore timestamps (default: %(default)s)')
 
@@ -268,6 +274,18 @@ def parse_config(path, env='default'):
     return result
 
 
+def start_server(path, port=80):
+    '''Start the server.'''
+    os.chdir(path)
+    handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+    httpd = SocketServer.TCPServer(("", int(port)), handler)
+    print '[SERVE] start serving on port', port
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print '[SERVE] stopping server'
+
+
 def main(args=None):  # pragma: no cover
     '''Main entry point.'''
     args = parse_args(args)
@@ -282,13 +300,19 @@ def main(args=None):  # pragma: no cover
         observer = Observer()
         observer.schedule(handler, path=args.src, recursive=True)
         observer.start()
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
+        if args.serve:
+            start_server(args.dest, args.serve)
             observer.stop()
-            print ''
+        else:
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                observer.stop()
+                print ''
         observer.join()
+    elif args.serve:
+        start_server(args.dest, args.serve)
 
 
 if __name__ == '__main__':  # pragma: no cover
