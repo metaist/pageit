@@ -47,7 +47,7 @@ MSG_CREATE = 'create {0}'
 MSG_RENDER = 'render {0}'
 MSG_SKIP = 'skip   {0}'
 
-RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit)\s+file="(.*)"')
+RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit|namespace)\s+file="(.*)"')
 
 
 class PageitWatcher(FileSystemEventHandler):
