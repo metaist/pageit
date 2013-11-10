@@ -47,7 +47,7 @@ MSG_CREATE = 'create {0}'
 MSG_RENDER = 'render {0}'
 MSG_SKIP = 'skip   {0}'
 
-RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit|namespace)\s+file="(.*)"')
+RE_MAKO_DEPENDENCY = re.compile(r'<%(include|inherit|namespace)\s+file="([^"]*)"')
 
 
 class PageitWatcher(FileSystemEventHandler):
@@ -106,6 +106,8 @@ class Pageit(object):
         src = src or self.args.src
         dest = dest or self.args.dest
 
+        assert osp.isdir(src), 'Cannot find site in {0}'.format(src)
+
         prefix = self.args.mako_prefix
         for root, _, files in os.walk(src):
             srcpath = osp.abspath(osp.join(src, root))
@@ -118,7 +120,6 @@ class Pageit(object):
             destpath = osp.abspath(osp.join(dest, relpath))
             destbase = osp.basename(destpath)
             self.create_dir(relpath or destbase, destpath)  # dir exists
-            #self.process_dir(files, srcpath, destpath, relpath)
             for name in files:
                 self.process_file(name, srcpath, destpath, relpath)
 
@@ -169,39 +170,50 @@ class Pageit(object):
     def render_file(self, name, src, dest):
         '''Render a file.'''
         tmpl = self._tmpl.get_template(name)
-        with codecs.open(dest, encoding='utf-8', mode='w') as out:
+        try:
             rendered = tmpl.render_unicode(site=self.site, page=Namespace())
-            out.write(rendered)
-        self.logger.info(MSG_RENDER.format(name, src, dest))
+            with codecs.open(dest, encoding='utf-8', mode='w') as out:
+                out.write(rendered)
+            self.logger.info(MSG_RENDER.format(name, src, dest))
+        except:
+            self.logger.error('Error rendering {0}'.format(name))
+            raise
+
         return self
+
+    def mako_deps(self, path):
+        '''Return non-recursive list of dependencies for a mako template.'''
+        results = []
+        path = osp.abspath(path)
+        self.logger.debug('dependencies for {0}'.format(path))
+        for line in open(path):
+            groups = RE_MAKO_DEPENDENCY.search(line)  # look for imports
+            if groups:
+                dep = groups.group(2)
+                if '/' == dep[0]:  # relative to src
+                    dep = osp.normpath(osp.join(self.args.src,
+                                                dep.lstrip('/')))
+                else:  # relative to current dir
+                    dep = osp.normpath(osp.join(osp.dirname(path), dep))
+
+                if dep not in results:
+                    self.logger.debug('depends on {0}'.format(dep))
+                    results.append(dep)
+        return results
 
     def mako_mtime(self, path):
         '''Return the latest mtime of a mako template and its dependencies.'''
-        path = osp.abspath(path)
+        self.logger.debug('last mtime for {0}'.format(path))
         if path in self.mtimes:
             return self.mtimes[path]
 
         result = int(osp.getmtime(path))
-        deps = mako_deps(path)
+        deps = self.mako_deps(path)
         mtimes = [result] + [self.mako_mtime(dep) for dep in deps]
         result = max(mtimes)
 
         self.mtimes[path] = result
         return result
-
-
-def mako_deps(path):
-    '''Returns list of dependencies for a mako template.'''
-    results = []
-    path = osp.abspath(path)
-    pathdir = osp.dirname(path)
-    for line in open(path):
-        groups = RE_MAKO_DEPENDENCY.search(line)  # look for imports
-        if groups:
-            dep = osp.abspath(osp.join(pathdir, groups.group(2)))
-            if dep not in results:
-                results.append(dep)
-    return results
 
 
 def parse_args(args=None):
