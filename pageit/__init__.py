@@ -9,5 +9,5 @@ __email__ = 'metaist@metaist.com'
 __license__ = 'MIT'
 __maintainer__ = 'The Metaist'
 __status__ = 'Prototype'
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 __version_info__ = tuple(__version__.split('.'))

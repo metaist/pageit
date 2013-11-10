@@ -30,8 +30,8 @@ def resolve():
 
 @task
 def clean():
-    paths = (glob('dist/') + glob('build/') + glob('pageit.egg-info/') +
-             glob('MANIFEST') + glob('.coverage') + glob('paver-minilib.zip'))
+    paths = (glob('dist/') + glob('build/') + glob('tmp/') +
+             glob('pageit.egg-info/') + glob('MANIFEST') + glob('.coverage'))
 
     for pattern in ['*.pyc', '*.*~']:
         paths += glob(pattern) + glob('*/' + pattern)
@@ -58,11 +58,10 @@ def test():
 
 @task
 def _nose():
-    import nose
-    path = os.path.join(os.path.abspath('.'), 'pageit')
-    args = ['', '--with-doctest', '--with-coverage', '--cover-package=pageit']
-    args += glob(os.path.join(path, '*.py'))
-    nose.run(argv=args)
+    args = ['nosetests', '--all-modules', '--traverse-namespace',
+            '--with-doctest',
+            '--with-coverage', '--cover-package=pageit']
+    sh(' '.join(args))
 
 
 @task
