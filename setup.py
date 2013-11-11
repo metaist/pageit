@@ -20,19 +20,25 @@ def check_scripts(scripts):
 
 OPTS = Namespace(
     name='pageit',
+    description=pageit.pageit.__doc__.split('\n')[0],
+    long_description=pageit.pageit.__doc__,
+
+    version=pageit.__version__.replace('pre', ''),
     packages=['pageit'],
+    provides=['pageit'],
+
     install_requires=open('requirements.txt').read().strip().split('\n'),
     scripts=check_scripts(['scripts/pageit']),
     entry_points={'console_scripts': ['pageit = pageit.pageit:main']},
-    version=pageit.__version__.replace('pre', ''),
+
     author=pageit.__author__,
     author_email=pageit.__email__,
+    license=pageit.__license__,
+
     url='https://github.com/metaist/pageit',
     download_url='https://github.com/metaist/pageit',
-    description=pageit.__doc__.split('\n')[0],
-    long_description=pageit.__doc__,
-    keywords='static website',
-    license=pageit.__license__,
+
+    keywords='static website generator',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
