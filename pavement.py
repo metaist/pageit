@@ -31,10 +31,17 @@ def resolve():
 @task
 @needs(['build_sphinx'])
 def docs():
-    htmlpath = path('build') / 'sphinx' / 'html'
-    docspath = path('build')
-    shutil.move(htmlpath, docspath)
-    os.rename(docspath / 'html', docspath / 'docs')
+    build = path('build')
+    html = build / 'sphinx' / 'html'
+    tmp = build / 'html'
+    docs = build / 'docs'
+
+    shutil.move(html, build)
+
+    if os.path.isdir(docs):
+        shutil.rmtree(docs)
+
+    os.rename(tmp, docs)
 
 
 @task
@@ -89,6 +96,12 @@ def _pylint():
 
 
 @task
-@needs(['sdist', 'upload', 'upload_docs'])
+@needs(['sdist', 'upload'])
 def pypi():
+    pass
+
+
+@task
+@needs(['docs', 'upload_docs'])
+def pypi_docs():
     pass
