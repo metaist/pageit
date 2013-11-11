@@ -17,7 +17,7 @@ exec(''.join([x for x in path('setup.py').lines() if 'setuptools' not in x]))
 
 
 @task
-@needs(['resolve', 'clean', 'test'])
+@needs(['resolve', 'clean', 'test', 'docs'])
 def all():
     pass
 
@@ -27,6 +27,11 @@ def resolve():
     import pip
     pip.main(['install', '-r', 'requirements.txt', '--use-mirrors'])
 
+
+@task
+@needs(['build_sphinx'])
+def docs():
+    pass
 
 @task
 def clean():
