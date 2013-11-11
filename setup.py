@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, '')
 import pageit
 from pageit.lib import Namespace
+from pageit import pageit as module
 
 
 def check_scripts(scripts):
@@ -20,8 +21,8 @@ def check_scripts(scripts):
 
 OPTS = Namespace(
     name='pageit',
-    description=pageit.pageit.__doc__.split('\n')[0],
-    long_description=pageit.pageit.__doc__,
+    description=module.__doc__.split('\n')[0],
+    long_description=module.__doc__,
 
     version=pageit.__version__.replace('pre', ''),
     packages=['pageit'],

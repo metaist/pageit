@@ -36,6 +36,7 @@ def docs():
     shutil.move(htmlpath, docspath)
     os.rename(docspath / 'html', docspath / 'docs')
 
+
 @task
 def clean():
     paths = (glob('dist/') + glob('build/') + glob('tmp/') +
