@@ -29,7 +29,13 @@ def resolve():
 
 
 @task
-@needs(['build_sphinx'])
+def api_docs():
+    args = ['sphinx-apidoc', '-f', '-o', path('docs') / 'api', 'pageit']
+    sh(' '.join(args))
+
+
+@task
+@needs(['api_docs', 'build_sphinx'])
 def docs():
     build = path('build')
     html = build / 'sphinx' / 'html'
