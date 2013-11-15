@@ -1,12 +1,10 @@
 argparse>=1.2.1
 coverage>=3.6
 Mako>=0.8.1
-Markdown>=2.3.1
 nose>=1.2.1
 Paver>=1.2.1
 pep8>=1.4.4
 pylint>=0.28.0
-PyYAML>=3.10
 sphinx-rtd-theme>=0.1.5
 Sphinx>=1.2b3
 sphinxcontrib-napoleon==0.2.1

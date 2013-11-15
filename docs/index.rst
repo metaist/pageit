@@ -1,3 +1,12 @@
 .. include:: ../README.rst
 
-* :ref:`modindex`
+----
+
+Contents
+========
+.. toctree::
+  :maxdepth: 4
+
+  install
+  running
+  api

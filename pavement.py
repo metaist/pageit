@@ -17,7 +17,7 @@ exec(''.join([x for x in path('setup.py').lines() if 'setuptools' not in x]))
 
 
 @task
-@needs(['resolve', 'clean', 'test', 'docs'])
+@needs(['clean', 'test', 'docs'])
 def all():
     pass
 
@@ -35,7 +35,7 @@ def api_docs():
 
 
 @task
-@needs(['api_docs', 'build_sphinx'])
+@needs(['build_sphinx'])
 def docs():
     build = path('build')
     html = build / 'sphinx' / 'html'
@@ -81,8 +81,7 @@ def test():
 @task
 def _nose():
     args = ['nosetests', '--all-modules', '--traverse-namespace',
-            '--with-doctest',
-            '--with-coverage', '--cover-package=pageit']
+            '--with-doctest', '--with-coverage', '--cover-package=pageit']
     sh(' '.join(args))
 
 

@@ -1,18 +1,50 @@
 #!/usr/bin/python
 # coding: utf-8
 
-'''Generic namespace.'''
+'''pageit utility functions'''
 
+from contextlib import contextmanager
 import collections
+import os
+
+
+@contextmanager
+def pushd(path):
+    '''Change the current working directory for a context.
+
+    Args:
+        path (str): temporary path to change to
+
+    Yields:
+        str: absolute path to the new path
+
+    Example:
+        >>> cwd = os.getcwd()
+        >>> with pushd('..') as newpath:
+        ...     os.getcwd() != cwd
+        True
+    '''
+    oldpath, newpath = os.getcwd(), os.path.abspath(path)
+    os.chdir(newpath)
+    yield newpath
+    os.chdir(oldpath)
 
 
 def getattrs(obj, *names):
-    '''Return multiple attributes of an object.
+    '''Returns multiple attributes of an object.
 
-    >>> x = Namespace(a=1, b=2, c=3)
-    >>> a, c = getattrs(x, 'a', 'c')
-    >>> a == x.a and c == x.c
-    True
+    Args:
+        obj (object): object
+        *names: variable list names of attributes
+
+    Returns:
+        tuple: attribute values
+
+    Example:
+        >>> x = Namespace(a=1, b=2, c=3)
+        >>> a, c, d = getattrs(x, 'a', 'c', 'd')
+        >>> a == x.a and c == x.c and d is None
+        True
     '''
     return (getattr(obj, name) for name in names)
 
@@ -20,14 +52,21 @@ def getattrs(obj, *names):
 def extend(*items):
     '''Extend a dictionary with a set of dictionaries.
 
-    >>> extend({}, {'a': 1}, {'a': None}) == {'a': 1}
-    True
-    >>> extend({'a': 1}, {'b': 2}, {'a': 4}) == {'a': 4, 'b': 2}
-    True
-    >>> extend({'a': {'b': 3}}, {'a': {'c': 2}}) == {'a': {'b': 3, 'c': 2}}
-    True
-    >>> extend({'a': {'b': 3}}, {'a': {'b': 2}}) == {'a': {'b': 2}}
-    True
+    Args:
+        *items: dictionary to extend
+
+    Returns:
+        dict: all of the dictionaries extended
+
+    Examples:
+        >>> extend({}, {'a': 1}, {'a': None}) == {'a': 1}
+        True
+        >>> extend({'a': 1}, {'b': 2}, {'a': 4}) == {'a': 4, 'b': 2}
+        True
+        >>> extend({'a': {'b': 3}}, {'a': {'c': 2}}) == {'a': {'b': 3, 'c': 2}}
+        True
+        >>> extend({'a': {'b': 3}}, {'a': {'b': 2}}) == {'a': {'b': 2}}
+        True
     '''
     assert len(items) >= 2, 'Need 2 or more items to merge.'
     result = items[0]
@@ -45,35 +84,42 @@ def extend(*items):
 
 
 class Namespace(collections.MutableMapping):
-    """A simple namespace.
+    '''A simple namespace.
 
     Access attributes of this object with dot or array notation.
 
-    >>> ns = Namespace(a=1, b=2)
-    >>> (1 == ns.a) and (2 == ns['b'])
-    True
-    >>> (ns.c is None) and (ns['c'] is None)
-    True
-    >>> ns['d'] = 'present'
-    >>> 'd' in ns
-    True
-    >>> del ns['d']
-    >>> 'd' not in ns
-    True
-    >>> ns.d = 'Foo'
-    >>> ns.d == 'Foo'
-    True
-    >>> del ns.d
-    >>> 'd' not in ns
-    True
-    """
+    Examples:
+        >>> ns = Namespace(a=1, b=2)
+        >>> (ns.a == 1 and ns['b'] == 2)
+        True
+    '''
 
     def __init__(self, *args, **kwds):
-        """Construct a namespace from parameters.
+        '''Construct a namespace from parameters.
 
-        >>> Namespace(a=1, b=2) == Namespace({'a': 1, 'b': 2})
-        True
-        """
+        Args:
+            *args: dictionaries or objects to merge
+            **kwds: converted into a dictionary
+
+            Note: Variable arguments take precedence over keyword arguments.
+
+        Examples:
+            >>> Namespace(a=1, b=2) == Namespace({'a': 1, 'b': 2})
+            True
+
+            `None` is ignored as an argument.
+            >>> Namespace(None, a=1) == Namespace(a=1)
+            True
+
+            You can only merge dictionaries or objects.
+            >>> x = None
+            >>> try:
+            ...     x = Namespace([1,2,3])
+            ... except AssertionError:
+            ...     pass
+            >>> x is None
+            True
+        '''
         args = list(args)
         args.append(kwds)
         for arg in args:
@@ -81,86 +127,174 @@ class Namespace(collections.MutableMapping):
                 pass  # nothing to do
             elif isinstance(arg, dict):
                 self.__dict__ = extend(self.__dict__, arg)
-            elif isinstance(arg, object):
+            elif isinstance(arg, object) and hasattr(arg, '__dict__'):
                 self.__dict__ = extend(self.__dict__, arg.__dict__)
             else:
                 assert False, '[{0}] cannot be merged'.format(arg)
 
     def __contains__(self, name):
-        """Returns True if name is in the Namespace.
+        '''Returns True if name is in the Namespace.
 
-        >>> 'a' in Namespace(a=1)
-        True
-        >>> 'b' not in Namespace(a=1)
-        True
-        """
+        Args:
+            name(str): name of the attribute
+
+        Returns:
+            bool: True if the name is in the namespace; False otherwise
+
+        Examples:
+            >>> 'a' in Namespace(a=1)
+            True
+            >>> 'b' not in Namespace(a=1)
+            True
+        '''
         return name in self.__dict__
 
     def __delattr__(self, name):
-        """Deletes an attribute."""
+        '''Deletes an attribute (dot notation).
+
+        Args:
+            name (str): name of the attribute to delete
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> del ns.a
+            >>> 'a' not in ns
+            True
+        '''
         del self.__dict__[name]
 
     def __delitem__(self, name):
-        """Deletes an attribute."""
+        '''Deletes an attribute (array notation).
+
+        Args:
+            name (str): name of the attribute to delete
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> del ns['a']
+            >>> 'a' not in ns
+            True
+        '''
         del self.__dict__[name]
 
     def __getattr__(self, name):
-        """Returns None since the given attribute does not exist."""
+        '''Returns the attribute value (dot notation).
+
+        Note:
+            Since this method is only called when an attribute does not exist,
+            by definition this method will always return `None`.
+
+        Args:
+            name (str): attribute name (ignored)
+
+        Returns:
+            None: this method is only called when an attribute does not exist
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> ns.b is None
+            True
+
+            However, you can set attributes on objects, so:
+            >>> ns.b = 2
+            >>> ns.b == 2
+            True
+        '''
         return None
 
     def __getitem__(self, name):
-        """Returns the value or None if name is not in the Namespace."""
+        '''Returns the attribute value (array notation).
+
+        Args:
+            name (str): attribute name
+
+        Returns:
+            value of the attribute or None if it does not exist
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> ns['a'] == 1
+            True
+            >>> ns['b'] is None
+            True
+        '''
         return self.__dict__.get(name)
 
     def __setitem__(self, name, val):
-        """Sets the value of an attribute."""
+        '''Sets the value of an attribute.
+
+        Args:
+            name (str): attribute name
+            val: attribute value
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> ns['b'] = 2
+            >>> ns.b == 2
+            True
+        '''
         self.__dict__[name] = val
 
     def __len__(self):
-        """Return the number of attributes set.
+        '''Returns the number of attributes set.
 
-        >>> len(Namespace(a=1, b=2)) == 2
-        True
-        """
+        Example:
+            >>> len(Namespace(a=1, b=2)) == 2
+            True
+        '''
         return len(self.__dict__)
 
     def __iter__(self):
-        """Return an iterator.
+        '''Returns an iterator.
 
-        >>> [attr for attr in Namespace(a=1)] == ['a']
-        True
-        """
+        Example:
+            >>> [attr for attr in Namespace(a=1)] == ['a']
+            True
+        '''
         return iter(self.__dict__)
 
     def __repr__(self):
-        """Return a representation of the object.
+        '''Returns a string representation of the object.
 
-        >>> repr(Namespace(a=1))
-        'Namespace(a=1)'
-        """
+        Example:
+            >>> repr(Namespace(a=1))
+            'Namespace(a=1)'
+        '''
         result = ', '.join([k + '=' + str(self[k]) for k in self])
         return 'Namespace(' + result + ')'
 
     def __eq__(self, other):
-        """Return True if the items are equal.
+        '''Returns True if the items are equal.
 
-        >>> Namespace(a=1) == Namespace({'a': 1})
-        True
-        """
+        Args:
+            other (Namespace): object of comparison
+
+        Example:
+            >>> Namespace(a=1) == Namespace({'a': 1})
+            True
+        '''
         return isinstance(other, Namespace) and self.__dict__ == other.__dict__
 
     def __add__(self, other):
-        """Add another object to this object.
+        '''Add another object to this object.
 
-        >>> Namespace(a=1) + {'b': 2} == Namespace(a=1, b=2)
-        True
-        """
+        Args:
+            other (Namespace, dict, object): object to add
+
+        Example:
+            >>> Namespace(a=1) + {'b': 2} == Namespace(a=1, b=2)
+            True
+        '''
         return Namespace(self, other)
 
     def __radd__(self, other):
-        """Add this object to another object.
+        '''Add this object to another object.
 
-        >>> {'a': 1} + Namespace(b=2) == Namespace(a=1, b=2)
-        True
-        """
+        Args:
+            other (dict, object): object to which to add
+
+        Example:
+            >>> {'a': 1} + Namespace(b=2) == Namespace(a=1, b=2)
+            True
+        '''
         return Namespace(other, self)

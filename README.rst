@@ -30,19 +30,17 @@ Getting Started
 2. Create a directory called `site` where you will put your html files::
 
     $ mkdir site
+    $ cd site
 
-3. Run pageit above `site` to copy the files into the `output` directory::
+3. Run `pageit` to generate the html files::
 
     $ pageit
 
-   pageit will iterate over the `site` directory and copy files into `output`
-   following these basic rules:
+  * Directories with names that end with `.mako` will be ignored. This is
+    a good way to prevent your mako layouts from getting rendered.
 
-    * Directories with names that start with `mako.` will be ignored. This is
-      handy for storing your base layouts in a directory like `mako.layouts`.
-    * Files that start with `mako.` will be rendered using `mako`; the
-      generated file will have the `mako.` prefixed removed.
-    * All other files will be copied exactly.
+  * Files that end with `.mako` will be rendered using `mako`; the
+    generated file will have the `.mako` extension removed.
 
 Contribute
 ----------

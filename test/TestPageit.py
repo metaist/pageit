@@ -2,9 +2,9 @@
 # coding: utf-8
 
 from os import path as osp
-import unittest
 import inspect
-import shutil
+import os
+import unittest
 
 from nose.plugins.skip import SkipTest, Skip
 
@@ -15,26 +15,49 @@ CWD = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
 
 
 class TestPageit(unittest.TestCase):
-    def test_run(self):
-        """Basic test."""
-        srcdir = osp.join(CWD, 'example1', 'site')
-        destdir = osp.join(CWD, 'example1', 'output')
-        print destdir
-        self.assertFalse(osp.isdir(destdir))
+    path = osp.join(CWD, 'example1')
 
-        pageit.main(['--init', '--src', srcdir, '--dest', destdir])
-        isdir = osp.isdir(destdir)
-        self.assertTrue(isdir)
+    def setUp(self):
+        '''Construct the runner.'''
+        self.pageit = pageit.Pageit(path=self.path)
 
-        if isdir:  # clean up
-            shutil.rmtree(destdir)
+    def tearDown(self):
+        '''Destroy the runner.'''
+        self.pageit = None
 
     def test_mako_deps(self):
-        """Listing dependencies in mako."""
-        srcdir = osp.join(CWD, 'example1', 'site')
-        testfile = osp.join(srcdir, 'subdir', 'mako.index.html')
-        obj = pageit.Pageit(args=Namespace(src=srcdir))
+        '''List mako dependencies.'''
+        infile = osp.join(self.path, 'subdir', 'index.html.mako')
 
-        deps = obj.mako_deps(testfile)
-        expected = [osp.join(srcdir, 'mako.layouts', 'child.html')]
+        deps = self.pageit.mako_deps(infile)
+        expected = [osp.join(self.path, 'layouts.mako', 'child.html'),
+                    osp.join(self.path, 'layouts.mako', 'base.html'),
+                    osp.join(self.path, 'subdir', 'local-include.html')]
         self.assertEquals(expected, deps)
+
+    def test_run(self):
+        '''Run on a single path.'''
+        infile = osp.join(self.path, 'index.html.mako')
+        outfile = osp.join(self.path, 'index.html')
+
+        # run
+        self.assertFalse(osp.isfile(outfile))
+        print self.pageit.path
+        self.pageit.mako(infile)
+        self.assertTrue(osp.isfile(outfile))
+
+        # clean
+        self.pageit.clean()
+        self.assertFalse(osp.isfile(outfile))
+
+    def test_dry_run(self):
+        '''Don't generate files during dry run.'''
+        infile = osp.join(self.path, 'index.html.mako')
+        outfile = osp.join(self.path, 'index.html')
+        self.pageit = pageit.Pageit(path=self.path, dry_run=True)
+
+        # run
+        self.assertFalse(osp.isfile(outfile))
+        self.pageit.mako(infile)
+        self.assertFalse(osp.isfile(outfile),
+                         'dry run should not generate files')
