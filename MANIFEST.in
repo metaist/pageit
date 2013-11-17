@@ -1,6 +1,7 @@
-include setup.py
-include scripts/pageit.bat
-include scripts/pageit
-include requirements.txt
-include README.rst
+graft pageit
 include LICENSE
+include README.rst
+include requirements.txt
+include scripts/*
+include setup.py
+recursive-include docs *.rst

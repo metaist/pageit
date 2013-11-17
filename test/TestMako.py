@@ -1,10 +1,12 @@
 #!/usr/bin/python
 # coding: utf-8
 
+# Native
 from os import path as osp
 import inspect
 import unittest
 
+# 3rd Party
 from mako.lookup import TemplateLookup
 from nose.plugins.skip import SkipTest, Skip
 

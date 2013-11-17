@@ -1,15 +1,18 @@
 #!/usr/bin/python
 # coding: utf-8
 
+# Native
 from os import path as osp
 import inspect
 import os
 import unittest
 
+# 3rd Party
 from nose.plugins.skip import SkipTest, Skip
 
-from pageit import pageit
-from pageit.lib import Namespace
+# Package
+from pageit.render import Pageit
+from pageit.namespace import Namespace
 
 CWD = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -19,20 +22,19 @@ class TestPageit(unittest.TestCase):
 
     def setUp(self):
         '''Construct the runner.'''
-        self.pageit = pageit.Pageit(path=self.path)
+        self.pageit = Pageit(path=self.path)
 
     def tearDown(self):
         '''Destroy the runner.'''
         self.pageit = None
 
     def test_mako_deps(self):
-        '''List mako dependencies.'''
+        '''List immediate mako dependencies.'''
         infile = osp.join(self.path, 'subdir', 'index.html.mako')
 
         deps = self.pageit.mako_deps(infile)
-        expected = [osp.join(self.path, 'layouts.mako', 'child.html'),
-                    osp.join(self.path, 'layouts.mako', 'base.html'),
-                    osp.join(self.path, 'subdir', 'local-include.html')]
+        expected = set([osp.join(self.path, 'layouts.mako', 'child.html'),
+                        osp.join(self.path, 'subdir', 'local-include.html')])
         self.assertEquals(expected, deps)
 
     def test_run(self):
@@ -42,7 +44,6 @@ class TestPageit(unittest.TestCase):
 
         # run
         self.assertFalse(osp.isfile(outfile))
-        print self.pageit.path
         self.pageit.mako(infile)
         self.assertTrue(osp.isfile(outfile))
 
@@ -54,7 +55,7 @@ class TestPageit(unittest.TestCase):
         '''Don't generate files during dry run.'''
         infile = osp.join(self.path, 'index.html.mako')
         outfile = osp.join(self.path, 'index.html')
-        self.pageit = pageit.Pageit(path=self.path, dry_run=True)
+        self.pageit = Pageit(path=self.path, dry_run=True)
 
         # run
         self.assertFalse(osp.isfile(outfile))

@@ -2,14 +2,14 @@
 # coding: utf-8
 
 '''pageit setup file.'''
+
+# Native
 from setuptools import setup
-import os.path
 import sys
 
-sys.path.insert(0, '')
+# Package
+sys.path[0:0] = ['.']
 import pageit
-from pageit.lib import Namespace
-from pageit import pageit as module
 
 
 def check_scripts(scripts):
@@ -19,37 +19,50 @@ def check_scripts(scripts):
     return scripts
 
 
-OPTS = Namespace(
-    name='pageit',
-    description=module.__doc__.split('\n')[0],
-    long_description=module.__doc__,
+def get_deps(path):
+    '''Parse requirements file.'''
+    deps = []
+    for line in open(path):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        deps.append(line)
+    return deps
 
-    version=pageit.__version__.replace('pre', ''),
-    packages=['pageit'],
-    provides=['pageit'],
+    open('requirements.txt').read().strip().split('\n')
 
-    install_requires=open('requirements.txt').read().strip().split('\n'),
-    scripts=check_scripts(['scripts/pageit']),
-    entry_points={'console_scripts': ['pageit = pageit.pageit:main']},
+OPTS = {
+    'name': 'pageit',
+    'description': pageit.__doc__.split('\n')[0],
+    'long_description': pageit.__doc__,
 
-    author=pageit.__author__,
-    author_email=pageit.__email__,
-    license=pageit.__license__,
+    'version': pageit.__version__.replace('pre', ''),
+    'packages': ['pageit', 'test'],
+    'provides': ['pageit'],
 
-    url='https://github.com/metaist/pageit',
-    download_url='https://github.com/metaist/pageit',
+    'install_requires': get_deps('requirements.txt'),
+    'scripts': check_scripts(['scripts/pageit']),
+    'entry_points': {'console_scripts': ['pageit = pageit.render:main']},
 
-    keywords='static website generator',
-    classifiers=[
+    'author': pageit.__author__,
+    'author_email': pageit.__email__,
+    'license': pageit.__license__,
+
+    'url': 'https://github.com/metaist/pageit',
+    'download_url': 'https://github.com/metaist/pageit',
+
+    'keywords': 'static website generator',
+    'classifiers': [
         'Development Status :: 4 - Beta',
+        'Environment :: Console',
         'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2',
-        'License :: OSI Approved :: MIT License',
-        'Topic :: Software Development :: Libraries'
+        'Topic :: Software Development :: Libraries',
     ]
-)
+}
 
 if sys.version_info >= (3,):
     OPTS['use_2to3'] = True

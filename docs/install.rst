@@ -3,7 +3,7 @@ Installing pageit
 
 Using pip
 ---------
-The fastest way to get pageit install is using `pip`:
+The fastest way to get pageit is using ``pip``:
 
 .. code-block:: bash
 

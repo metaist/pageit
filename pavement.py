@@ -3,11 +3,13 @@
 
 '''Paver build file.'''
 
+# Native
 import sys
 from glob import glob
 import os
 import shutil
 
+# 3rd Party
 from paver.easy import *
 from paver.setuputils import setup
 
@@ -19,7 +21,21 @@ exec(''.join([x for x in path('setup.py').lines() if 'setuptools' not in x]))
 @task
 @needs(['clean', 'test', 'docs'])
 def all():
-    pass
+    # Rendering & Cleaning
+    sh(' '.join(['python', path('pageit') / 'render.py',
+                 '--dry-run', '--clean', '--render',
+                 path('test') / 'example1']))
+    sh(' '.join(['python', path('pageit') / 'render.py',
+                 '--clean', '--render', path('test') / 'example1']))
+    sh(' '.join(['python', path('pageit') / 'render.py', '--clean']))
+
+    # Version & Help
+    sh(' '.join(['python', '-m', 'pageit.render', '--version']))
+    sh(' '.join(['python', path('pageit') / 'render.py', '--version']))
+    sh(' '.join(['python', path('pageit') / 'render.py', '--help']))
+
+    # Documentation
+    sh(' '.join(['google-chrome', path('build') / 'docs' / 'index.html']))
 
 
 @task

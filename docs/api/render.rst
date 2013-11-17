@@ -1,6 +1,6 @@
-pageit.pageit
+pageit.render
 =============
-.. automodule:: pageit.pageit
+.. automodule:: pageit.render
     :members:
     :undoc-members:
     :show-inheritance:

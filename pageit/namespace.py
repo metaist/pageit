@@ -1,33 +1,14 @@
 #!/usr/bin/python
 # coding: utf-8
 
-'''pageit utility functions'''
+'''Flexible objects and dictionaries.
 
-from contextlib import contextmanager
+The Namespace object provides simple ways to bunch together key/values while
+providing both dot- and array-notation setters and getters.
+'''
+
+# Native
 import collections
-import os
-
-
-@contextmanager
-def pushd(path):
-    '''Change the current working directory for a context.
-
-    Args:
-        path (str): temporary path to change to
-
-    Yields:
-        str: absolute path to the new path
-
-    Example:
-        >>> cwd = os.getcwd()
-        >>> with pushd('..') as newpath:
-        ...     os.getcwd() != cwd
-        True
-    '''
-    oldpath, newpath = os.getcwd(), os.path.abspath(path)
-    os.chdir(newpath)
-    yield newpath
-    os.chdir(oldpath)
 
 
 def getattrs(obj, *names):
@@ -88,38 +69,35 @@ class Namespace(collections.MutableMapping):
 
     Access attributes of this object with dot or array notation.
 
+    Args:
+        *args: dictionaries or objects to merge
+        **kwds: converted into a dictionary
+
+    Note:
+        Variable arguments take precedence over keyword arguments.
+
     Examples:
         >>> ns = Namespace(a=1, b=2)
         >>> (ns.a == 1 and ns['b'] == 2)
         True
+
+        >>> Namespace(a=1, b=2) == Namespace({'a': 1, 'b': 2})
+        True
+
+        >>> Namespace(None, a=1) == Namespace(a=1)
+        True
+
+        >>> x = None
+        >>> try:
+        ...     x = Namespace([1,2,3])
+        ... except AssertionError:
+        ...     pass
+        >>> x is None
+        True
     '''
 
     def __init__(self, *args, **kwds):
-        '''Construct a namespace from parameters.
-
-        Args:
-            *args: dictionaries or objects to merge
-            **kwds: converted into a dictionary
-
-            Note: Variable arguments take precedence over keyword arguments.
-
-        Examples:
-            >>> Namespace(a=1, b=2) == Namespace({'a': 1, 'b': 2})
-            True
-
-            `None` is ignored as an argument.
-            >>> Namespace(None, a=1) == Namespace(a=1)
-            True
-
-            You can only merge dictionaries or objects.
-            >>> x = None
-            >>> try:
-            ...     x = Namespace([1,2,3])
-            ... except AssertionError:
-            ...     pass
-            >>> x is None
-            True
-        '''
+        '''Construct a namespace from parameters.'''
         args = list(args)
         args.append(kwds)
         for arg in args:
@@ -182,7 +160,7 @@ class Namespace(collections.MutableMapping):
 
         Note:
             Since this method is only called when an attribute does not exist,
-            by definition this method will always return `None`.
+            by definition this method will always return ``None``.
 
         Args:
             name (str): attribute name (ignored)
@@ -195,7 +173,6 @@ class Namespace(collections.MutableMapping):
             >>> ns.b is None
             True
 
-            However, you can set attributes on objects, so:
             >>> ns.b = 2
             >>> ns.b == 2
             True
