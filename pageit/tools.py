@@ -34,8 +34,8 @@ MSG = Namespace(
     T_SERVE=MSG_PRE + '%s on port [%s]',
     T_WATCH=MSG_PRE + '%s',
 
-    CHANGE=MSG_PRE + 'change in %s',
-    PATH_ERR=MSG_PRE + 'cannot find %s'
+    CHANGE=MSG_PRE + 'change in <%s>',
+    PATH_ERR=MSG_PRE + 'cannot find <%s>'
 )
 
 

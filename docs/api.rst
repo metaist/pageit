@@ -1,5 +1,5 @@
-Script API
-==========
+Script API v |version|
+======================
 
 Cleaning & Rendering
 --------------------

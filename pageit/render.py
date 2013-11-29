@@ -16,6 +16,7 @@ import sys
 from argh import arg, ArghParser
 from mako.lookup import TemplateLookup
 import mako.exceptions
+import yaml
 
 # Package
 if '__main__' == __name__:  # pragma: no cover
@@ -39,6 +40,8 @@ DEFAULT = Namespace(
     log=logging.getLogger('com.metaist.pageit.render'),
     path='.',
     tmp=None,
+    config='pageit.yml',
+    env='default',
     ext='.mako',
     port=80,
     verbosity=1
@@ -61,7 +64,10 @@ MSG = tools.MSG + Namespace(
     RENDER=MSG_PRE + 'rendered <%s>',
     RENDER_ERR=MSG_PRE + 'cannot render %s',
     WRITE=MSG_PRE + 'wrote <%s>',
-    WRITE_ERR=MSG_PRE + 'cannot write to %s'
+    WRITE_ERR=MSG_PRE + 'cannot write to %s',
+
+    NO_ENV=MSG_PRE + 'missing environment <%s> in <%s>',
+    LOAD_ENV=MSG_PRE + 'loading environment <%s> in <%s>'
 )
 
 
@@ -100,7 +106,13 @@ class Pageit(object):
         tmpl (mako.lookup.TemplateLookup, optioanl): mako template lookup
             object
 
+        site (pageit.namespace.Namespace, optional): namespace passed to
+            mako templates during rendering
+
         log (logging.Logger, optional): system logger
+
+    .. versionchanged:: 0.2.1
+       Added the *site* parameter.
     '''
 
     _dry = ''
@@ -115,11 +127,13 @@ class Pageit(object):
                  ignore_mtime=False,
                  watcher=None,
                  tmpl=None,
+                 site=None,
                  log=None):
         '''Construct a renderer.'''
         self.path = osp.abspath(path)
         self.watcher = watcher
         self.tmpl = tmpl or create_lookup(self.path)
+        self.site = site or create_config(osp.join(self.path, DEFAULT.config))
         self.log = log or create_logger()
         self.args = Namespace(
             ext=ext,
@@ -248,9 +262,10 @@ class Pageit(object):
         dest = dest or strip_ext(path, self.args.ext)
         tmpl = self.tmpl.get_template(name)
         content, has_errors = '', False
+        page = Namespace(path=name)
         try:
             if not self.args.dry_run:
-                content = tmpl.render_unicode(page=Namespace(path=name))
+                content = tmpl.render_unicode(site=self.site, page=page)
             self.log.info(MSG.RENDER + self._dry, _context, name)
         except mako.exceptions.MakoException as ex:
             has_errors = True
@@ -395,6 +410,49 @@ def create_lookup(path=DEFAULT.path, tmp=None):
     )
 
 
+def create_config(path=DEFAULT.config, env=DEFAULT.env, log=None):
+    '''Constructs a Namespace for attributes to pass to mako templates.
+
+    The configuration file should be a list of keys mapped to key/value pairs.
+    The load process first loads an environment called "default" and then
+    extends those keys to include those in the given environment.
+
+    .. versionadded:: 0.2.1
+
+    Args:
+        path (str): YAML configuration file
+        env (str, optional): section to load
+        log (logging.Logger, optional): system logger
+
+    Returns:
+        pageit.namespace.Namespace: namespace of environment attributes
+
+    Examples:
+        >>> create_config('file.yml', 'local') == Namespace()
+        True
+    '''
+    _context = '[CONFIG]'
+    log = log or create_logger()
+    result = Namespace()
+    if not osp.isfile(path):
+        log.warning(MSG.PATH_ERR, _context, path)
+        return result
+
+    all_env = Namespace(yaml.load(open(path)))
+    if DEFAULT.env in all_env:
+        log.debug(MSG.LOAD_ENV, _context, 'default', path)
+        result += all_env[DEFAULT.env]
+
+    if DEFAULT.env != env:
+        if env in all_env:
+            log.debug(MSG.LOAD_ENV, _context, env, path)
+            result += all_env[env]
+        else:
+            log.warning(MSG.NO_ENV, _context, env, path)
+
+    return result
+
+
 def strip_ext(path, ext):
     '''Remove an extension from a path, if present.
 
@@ -422,8 +480,11 @@ def strip_ext(path, ext):
 @arg('-r', '--render', default=False,
      help='render templates after --clean')
 @arg('-w', '--watch', default=False, help='watch for file modifications')
-@arg('-s', '--serve', nargs='?', metavar='PORT', const=DEFAULT.port,
+@arg('-s', '--serve', metavar='PORT', nargs='?', const=DEFAULT.port,
      help='run basic HTTP server; deafult port is ' + str(DEFAULT.port))
+@arg('-f', '--config', metavar='PATH', default=DEFAULT.config,
+     help='yaml config file')
+@arg('-e', '--env', metavar='ENV', default=DEFAULT.env, help='config section')
 @arg('--tmp', metavar='PATH', default=DEFAULT.tmp, help='mako template cache')
 @arg('--ignore-mtime', default=False, help='ignore file modification times')
 @arg('--noerr', default=False, help='do not generate HTML error output')
@@ -433,16 +494,28 @@ def render(args):  # pragma: no cover
 
     Args:
         args (Namespace): argh arguments
+
+    .. versionchanged:: 0.2.1
+       Added configuration loading.
     '''
     args.path = osp.abspath(args.path)
     log = create_logger(args.verbosity)
+    site = Namespace(_pageit=Namespace(version=pageit.__version__))
     tmpl = create_lookup(args.path, args.tmp)
+
+    if not osp.isfile(args.config):  # adjust relative to path
+        log.debug(MSG.PATH_ERR, '[CONFIG]', args.config)
+        args.config = osp.join(args.path, args.config)
+
+    if osp.isfile(args.config):
+        site += create_config(args.config, args.env, log)
+
     runner = Pageit(path=args.path,
                     ext=args.ext,
                     dry_run=args.dry_run,
                     noerr=args.noerr,
                     ignore_mtime=args.ignore_mtime,
-                    tmpl=tmpl, log=log)
+                    site=site, tmpl=tmpl, log=log)
     if args.clean:
         runner.clean()
 

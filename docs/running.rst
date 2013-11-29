@@ -24,10 +24,10 @@ Most often, you'll want to run pageit, have it automatically re-run when
 files change, and serve it out for testing:
 
 .. code-block:: bash
-  
+
     $ pageit --watch --serve
 
-    
+
 Command-Line Options
 --------------------
 All command-line options are optional and default to ``False`` or ignored
@@ -47,6 +47,19 @@ unless inidicated otherwise.
     Serve the path using the SimpleHTTPServer_. This is not recommended for
     production environments.
     See: :py:func:`~pageit.tools.serve`
+``-f PATH``, ``--config PATH``
+    Path to YAML configuration file (default: ``pageit.yml``) containing a
+    dictionary of environment names mapped to environment values (key/value
+    pairs). The environment values are passed to ``mako`` templates during
+    rendering via the special ``site`` variable. The configuration file is
+    first searched for in the current working directory and then in the
+    ``pageit`` directory.
+.. versionadded:: 0.2.1
+``-e``, ``--env``
+    Name of the configuration environment to load (default: ``default). The
+    special ``default`` environment values are always loaded first and then
+    extended with the values from the environment named by ``--env``.
+.. versionadded:: 0.2.1
 ``--tmp``
     Directory in which to store generated ``mako`` templates. By default,
     generated templates are not stored.

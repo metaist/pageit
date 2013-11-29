@@ -1,0 +1,6 @@
+default:
+  base_url: //localhost/
+
+test:
+  base_url: //localhost/test/example1
+  debug: True

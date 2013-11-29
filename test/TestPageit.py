@@ -13,6 +13,7 @@ from nose.plugins.skip import SkipTest, Skip
 # Package
 from pageit.render import Pageit
 from pageit.namespace import Namespace
+import pageit.render as module
 
 CWD = osp.dirname(osp.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -27,6 +28,14 @@ class TestPageit(unittest.TestCase):
     def tearDown(self):
         '''Destroy the runner.'''
         self.pageit = None
+
+    def test_create_config(self):
+        '''Create site configuration.'''
+        infile = osp.join(self.path, 'pageit.yml')
+
+        expected = Namespace(base_url='//localhost/test/example1', debug=True)
+        result = module.create_config(infile, 'test')
+        self.assertEquals(expected, result)
 
     def test_mako_deps(self):
         '''List immediate mako dependencies.'''
