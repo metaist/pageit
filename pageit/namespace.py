@@ -3,8 +3,12 @@
 
 '''Flexible objects and dictionaries.
 
-The Namespace object provides simple ways to bunch together key/values while
-providing both dot- and array-notation setters and getters.
+:py:class:`~pageit.namespace.Namespace` objects provides simple ways to bunch
+together key/values while providing both dot- and array-notation setters and
+getters.
+
+:py:class:`~pageit.namespace.DeepNamespace` act in a similar manner, except that
+they apply theselves recursively.
 '''
 
 # Native
@@ -34,10 +38,11 @@ def extend(*items):
     '''Extend a dictionary with a set of dictionaries.
 
     Args:
-        *items: dictionary to extend
+        *items: dictionaries to extend; the first argument will be modified
 
     Returns:
-        dict: all of the dictionaries extended
+        dict: the first dictionary extended with values from the other
+        dictionaries
 
     Examples:
         >>> extend({}, {'a': 1}, {'a': None}) == {'a': 1}
@@ -87,6 +92,13 @@ class Namespace(collections.MutableMapping):
         >>> Namespace(None, a=1) == Namespace(a=1)
         True
 
+        >>> class Foo(object):
+        ...     pass
+        >>> x = Foo()
+        >>> x.a = 1
+        >>> Namespace(x) == Namespace(a=1)
+        True
+
         >>> x = None
         >>> try:
         ...     x = Namespace([1,2,3])
@@ -102,13 +114,18 @@ class Namespace(collections.MutableMapping):
         args.append(kwds)
         for arg in args:
             if arg is None:
-                pass  # nothing to do
+                continue  # nothing to do
+            elif isinstance(arg, Namespace):
+                self.__dict__.update(arg.__dict__)
+                continue  # avoid recursion
             elif isinstance(arg, dict):
-                self.__dict__ = extend(self.__dict__, arg)
+                pass  # arg is already a dict
             elif isinstance(arg, object) and hasattr(arg, '__dict__'):
-                self.__dict__ = extend(self.__dict__, arg.__dict__)
+                arg = arg.__dict__  # extract the relevant dict
             else:
                 assert False, '[{0}] cannot be merged'.format(arg)
+
+            extend(self, arg)
 
     def __contains__(self, name):
         '''Returns True if name is in the Namespace.
@@ -197,8 +214,26 @@ class Namespace(collections.MutableMapping):
         '''
         return self.__dict__.get(name)
 
+    def __setattr__(self, name, val):
+        '''Sets the value of an attribute (dot notation).
+
+        Args:
+            name (str): attribute name
+            val: attribute value
+
+        Example:
+            >>> ns = Namespace(a=1)
+            >>> ns.b = 2
+            >>> ns.b == 2
+            True
+
+        .. versionadded:: 0.2.2
+        '''
+        if '__dict__' != name:  # avoid infinite loop
+            self[name] = val
+
     def __setitem__(self, name, val):
-        '''Sets the value of an attribute.
+        '''Sets the value of an attribute (array notation).
 
         Args:
             name (str): attribute name
@@ -211,6 +246,14 @@ class Namespace(collections.MutableMapping):
             True
         '''
         self.__dict__[name] = val
+
+    def __hash__(self):
+        '''Returns the hash of this object.
+
+        >>> hash(Namespace(a=1)) == hash('Namespace(a=1)')
+        True
+        '''
+        return hash(repr(self))
 
     def __len__(self):
         '''Returns the number of attributes set.
@@ -236,9 +279,12 @@ class Namespace(collections.MutableMapping):
         Example:
             >>> repr(Namespace(a=1))
             'Namespace(a=1)'
+
+        .. versionchanged:: 0.2.2
+           Use the name of the class instead of a hard-coded string.
         '''
         result = ', '.join([k + '=' + str(self[k]) for k in self])
-        return 'Namespace(' + result + ')'
+        return self.__class__.__name__ + '(' + result + ')'
 
     def __eq__(self, other):
         '''Returns True if the items are equal.
@@ -275,3 +321,107 @@ class Namespace(collections.MutableMapping):
             True
         '''
         return Namespace(other, self)
+
+
+class DeepNamespace(Namespace):
+    '''A recursive namespace.
+
+    Similar to a normal :py:class:`~pageit.namespace.Namespace`, except that
+    setting an attribute to a dictionary, converts it into a
+    :py:class:`~pageit.namespace.DeepNamespace`.
+
+    Args:
+        *args: dictionaries or objects to merge
+        **kwds: converted into a dictionary
+
+    Note:
+        Variable arguments take precedence over keyword arguments.
+
+    Examples:
+        >>> ns = DeepNamespace({"a": {"b": 1}})
+        >>> ns.a.b == 1
+        True
+
+        >>> ns = DeepNamespace(x=DeepNamespace(y=1))
+        >>> ns.x.y == 1
+        True
+
+    .. versionadded:: 0.2.2
+    '''
+
+    def __init__(self, *args, **kwds):
+        '''Construct a namespace from parameters.
+
+        Merely calls the superclass constructor.
+        '''
+        super(DeepNamespace, self).__init__(*args, **kwds)
+
+    def __getattr__(self, name):
+        '''Returns the attribute value (dot notation).
+
+        This lets you safely reference attributes that don't exist in a
+        chainable way. You can test for existince using :py:func:`len`.
+
+        Note:
+            Since this method is only called when an attribute does not exist,
+            by definition this method will always return an empty
+            :py:class:`~pageit.namespace.DeepNamespace`.
+
+            However, it also has the side effect of **creating** that attribute
+            in the namespace so that you can assign arbitrary values.
+
+        Args:
+            name (str): attribute name (ignored)
+
+        Returns:
+            DeepNamespace: this method is only called when an attribute does
+            not exist
+
+        Example:
+            >>> ns = DeepNamespace(a=1)
+            >>> ns.b.c is not None
+            True
+            >>> len(ns.b.c) == 0
+            True
+
+            >>> ns.b = 2
+            >>> ns.b == 2
+            True
+        '''
+        self.__dict__[name] = DeepNamespace()
+        return self.__dict__[name]
+
+    def __setitem__(self, name, val):
+        '''Sets the value of an attribute (array notation).
+
+        If ``val`` is a dictionary or an object with attributes, it will
+        be recursively converted into a
+        :py:class:`~pageit.namespace.DeepNamespace`.
+
+        Args:
+            name (str): attribute name
+            val: attribute value
+
+        Example:
+            >>> ns = DeepNamespace()
+            >>> ns['a'] = {"b": {"c": 2}}
+            >>> ns.a.b.c == 2
+            True
+
+            >>> ns.x.y.z = 'Works'
+            >>> ns.x.y.z == 'Works'
+            True
+
+            >>> ns.q = Namespace(a=1)
+            >>> isinstance(ns.q, DeepNamespace)
+            True
+            >>> ns.q.a == 1
+            True
+        '''
+        if isinstance(val, DeepNamespace):
+            pass  # already a DeepNamespace
+        elif isinstance(val, dict):
+            val = DeepNamespace(val)
+        elif isinstance(val, object) and hasattr(val, '__dict__'):
+            val = DeepNamespace(val.__dict__)
+        self.__dict__[name] = val

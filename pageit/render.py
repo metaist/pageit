@@ -24,11 +24,11 @@ if '__main__' == __name__:  # pragma: no cover
 
 try:
     from pageit import tools
-    from pageit.namespace import Namespace
+    from pageit.namespace import Namespace, DeepNamespace
     import pageit
 except ImportError:  # pragma: no cover
     from . import tools
-    from .namespace import Namespace
+    from .namespace import Namespace, DeepNamespace
     import __init__ as pageit  # pylint: disable=W0403
 
 logging.basicConfig(format='%(levelname)-8s %(message)s')
@@ -106,9 +106,9 @@ class Pageit(object):
         tmpl (mako.lookup.TemplateLookup, optioanl): mako template lookup
             object
 
-        site (pageit.namespace.Namespace, optional):
-            :py:class:`~pageit.namespace.Namespace` passed to mako templates
-            during rendering
+        site (pageit.namespace.DeepNamespace, optional):
+            :py:class:`~pageit.namespace.DeepNamespace` passed to mako
+            templates during rendering
 
         log (logging.Logger, optional): system logger
 
@@ -202,6 +202,16 @@ class Pageit(object):
 
         Returns:
             Pageit: for method chaining
+
+        Examples:
+            >>> import os.path as osp
+            >>> runner = Pageit('test/example1')
+            >>> _ = runner.run()
+            >>> _ = runner.on_change('test/example1/index.html.mako')
+            >>> _ = runner.on_change(osp.abspath('test/example1/index.html'))
+            >>> _ = runner.clean()
+            >>> _ is runner
+            True
         '''
         if path in self._outputs:
             return self
@@ -213,6 +223,19 @@ class Pageit(object):
 
         Returns:
             Pageit: for method chaining
+
+        Examples:
+            >>> runner = Pageit('test/example1', dry_run=True)
+            >>> runner.run().clean() is runner
+            True
+
+            >>> runner = Pageit('test/example1', ignore_mtime=True)
+            >>> runner.run().clean() is runner
+            True
+
+            >>> runner = Pageit('test/example1')
+            >>> runner.run().clean() is runner
+            True
         '''
         _context = '[RENDER]'
         self.log.debug(MSG.START, _context)
@@ -251,7 +274,7 @@ class Pageit(object):
 
         .. _special-mako-vars:
 
-        This function injects two :py:class:`~pageit.namespace.Namespace`
+        This function injects two :py:class:`~pageit.namespace.DeepNamespace`
         variables into the ``mako`` template:
 
         - ``site``: environment information passed into the constructor
@@ -279,7 +302,7 @@ class Pageit(object):
         dest = dest or strip_ext(path, self.args.ext)
         tmpl = self.tmpl.get_template(name)
         content, has_errors = '', False
-        page = Namespace(
+        page = DeepNamespace(
             path=name,
             output=osp.relpath(dest, self.path),
             dirname=osp.dirname(name),
@@ -293,7 +316,7 @@ class Pageit(object):
             has_errors = True
             self.log.error(MSG.RENDER_ERR, _context, path)
             self.log.error(ex)
-            if not self.args.noerr:
+            if not self.args.dry_run and not self.args.noerr:
                 content = mako.exceptions.html_error_template().render()
 
         if not (self.args.noerr and has_errors):
@@ -305,7 +328,7 @@ class Pageit(object):
                     self._outputs.append(dest)
                 self.log.debug(MSG.WRITE + self._dry, _context,
                                osp.relpath(dest, self.path))
-            except OSError as ex:
+            except OSError as ex:  # pragma: no cover
                 self.log.error(MSG.WRITE_ERR, _context, dest, ex)
 
         self.log.debug(MSG.DONE, _context)
@@ -322,6 +345,10 @@ class Pageit(object):
 
         Returns:
             set: paths of dependencies
+
+        Examples:
+            >>> Pageit().mako_deps('fake.mako')
+            set([])
         '''
         paths = set([])
         if not osp.isfile(path):
@@ -357,6 +384,12 @@ class Pageit(object):
         Examples:
             >>> Pageit().mako_mtime('fake.mako')
             0
+
+            >>> import os.path as osp
+            >>> path1 = osp.abspath('test/example1')
+            >>> path2 = osp.join(path1, 'subdir/test-page.html.mako')
+            >>> Pageit(path1).mako_mtime(path2) > 0
+            True
         '''
         _context = '[MTIME]'
         name = osp.relpath(path, self.path)
@@ -368,7 +401,7 @@ class Pageit(object):
         deps, next_deps, done, mtimes = set([path]), set([]), [], []
         for _ in range(levels + 1):
             for dep in deps:
-                if dep in done or dep in next_deps or not osp.isfile(dep):
+                if not osp.isfile(dep):
                     continue
 
                 next_deps = next_deps.union(self.mako_deps(dep))
@@ -397,7 +430,16 @@ def create_logger(verbosity=DEFAULT.verbosity, log=None):
         logging.Logger: logger configured based on verbosity.
 
     Example:
-        >>> create_logger() is not None
+        >>> log = create_logger()
+        >>> log.getEffectiveLevel() == logging.INFO
+        True
+
+        >>> log = create_logger(0, log)
+        >>> log.getEffectiveLevel() == logging.NOTSET
+        True
+
+        >>> log = create_logger(2, log)
+        >>> log.getEffectiveLevel() == logging.DEBUG
         True
     '''
     log = log or DEFAULT.log
@@ -433,8 +475,8 @@ def create_lookup(path=DEFAULT.path, tmp=None):
 
 
 def create_config(path=DEFAULT.config, env=DEFAULT.env, log=None):
-    '''Constructs a :py:class:`~pageit.namespace.Namespace` for attributes to
-    pass to mako templates.
+    '''Constructs a :py:class:`~pageit.namespace.DeepNamespace` for attributes
+    to pass to mako templates.
 
     The configuration file should be a list of keys mapped to key/value pairs.
     The load process first loads an environment called "default" and then
@@ -446,25 +488,33 @@ def create_config(path=DEFAULT.config, env=DEFAULT.env, log=None):
         log (logging.Logger, optional): system logger
 
     Returns:
-        pageit.namespace.Namespace: :py:class:`~pageit.namespace.Namespace`
-        of environment attributes
+        pageit.namespace.DeepNamespace:
+        :py:class:`~pageit.namespace.DeepNamespace` of environment attributes
 
     Examples:
-        >>> create_config('file.yml', 'local') == Namespace()
+        >>> create_config('file.yml', 'local') == DeepNamespace()
+        True
+
+        >>> conf = create_config('test/example1/pageit.yml', 'test')
+        >>> conf.debug == True
+        True
+
+        >>> conf = create_config('test/example1/pageit.yml', 'fakeenv')
+        >>> 'debug' not in conf
         True
 
     .. versionadded:: 0.2.1
     '''
     _context = '[CONFIG]'
     log = log or create_logger()
-    result = Namespace()
+    result = DeepNamespace()
     if not osp.isfile(path):
         log.warning(MSG.PATH_ERR, _context, path)
         return result
 
-    all_env = Namespace(yaml.load(open(path)))
+    all_env = DeepNamespace(yaml.load(open(path)))
     if DEFAULT.env in all_env:
-        log.debug(MSG.LOAD_ENV, _context, 'default', path)
+        log.debug(MSG.LOAD_ENV, _context, DEFAULT.env, path)
         result += all_env[DEFAULT.env]
 
     if DEFAULT.env != env:
@@ -524,7 +574,7 @@ def render(args):  # pragma: no cover
     '''
     args.path = osp.abspath(args.path)
     log = create_logger(args.verbosity)
-    site = Namespace(_pageit=Namespace(version=pageit.__version__))
+    site = DeepNamespace(_pageit=DeepNamespace(version=pageit.__version__))
     tmpl = create_lookup(args.path, args.tmp)
 
     if not osp.isfile(args.config):  # adjust relative to path
