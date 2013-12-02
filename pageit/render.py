@@ -156,10 +156,11 @@ class Pageit(object):
             str: next file to process
         '''
         pattern = '*' + self.args.ext
-        for relpath, _, files in os.walk(self.path):
+        for relpath, dirs, files in os.walk(self.path):
             src = osp.join(self.path, relpath)
-            if fnmatch(src, pattern):  # don't go into this directory
-                continue
+            for i, name in enumerate(dirs):
+                if fnmatch(name, pattern):
+                    del dirs[i]  # don't visit that directory
 
             for name in files:
                 if fnmatch(name, pattern):  # do list this file

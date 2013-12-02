@@ -60,6 +60,14 @@ class TestPageit(unittest.TestCase):
         self.pageit.clean()
         self.assertFalse(osp.isfile(outfile))
 
+    def test_ignore_subtree(self):
+        '''Don't run on directories under a .mako directory (#18).'''
+        outfile = osp.join(self.path, 'layouts.mako', 'ignore', 'index.html')
+        self.assertFalse(osp.isfile(outfile))
+        self.pageit.run()
+        self.assertFalse(osp.isfile(outfile))
+        self.pageit.clean()
+
     def test_dry_run(self):
         '''Don't generate files during dry run.'''
         infile = osp.join(self.path, 'index.html.mako')

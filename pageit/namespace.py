@@ -7,8 +7,8 @@
 together key/values while providing both dot- and array-notation setters and
 getters.
 
-:py:class:`~pageit.namespace.DeepNamespace` act in a similar manner, except that
-they apply theselves recursively.
+:py:class:`~pageit.namespace.DeepNamespace` act in a similar manner, except
+that they apply theselves recursively.
 '''
 
 # Native
