@@ -36,7 +36,7 @@ OPTS = {
     'description': pageit.__doc__.split('\n')[0],
     'long_description': pageit.__doc__,
 
-    'version': pageit.__version__.replace('pre', ''),
+    'version': '.'.join(pageit.__version_info__),
     'packages': ['pageit', 'test'],
     'provides': ['pageit'],
 

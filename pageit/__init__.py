@@ -9,8 +9,8 @@ __email__ = 'metaist@metaist.com'
 __license__ = 'MIT'
 __maintainer__ = 'The Metaist'
 __status__ = 'Prototype'
-__version__ = '0.2.1'
-__version_info__ = tuple(__version__.split('.'))
+__version__ = '0.2.2-alpha'
+__version_info__ = tuple(__version__.split('-')[0].split('.'))
 
 __epilog__ = '''Copyright 2013, Metaist.
 

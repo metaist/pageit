@@ -106,13 +106,14 @@ class Pageit(object):
         tmpl (mako.lookup.TemplateLookup, optioanl): mako template lookup
             object
 
-        site (pageit.namespace.Namespace, optional): namespace passed to
-            mako templates during rendering
+        site (pageit.namespace.Namespace, optional):
+            :py:class:`~pageit.namespace.Namespace` passed to mako templates
+            during rendering
 
         log (logging.Logger, optional): system logger
 
     .. versionchanged:: 0.2.1
-       Added the *site* parameter.
+       Added the ``site`` parameter.
     '''
 
     _dry = ''
@@ -248,12 +249,28 @@ class Pageit(object):
     def mako(self, path, dest=None):
         '''Render a mako template.
 
+        .. _special-mako-vars:
+
+        This function injects two :py:class:`~pageit.namespace.Namespace`
+        variables into the ``mako`` template:
+
+        - ``site``: environment information passed into the constructor
+        - ``page``: information about the current template
+
+          - ``path``: relative path of this template
+          - ``output``: relative path to the output of the template
+          - ``dirname``: name of the directory containing the template
+          - ``basedir``: relative path back to the root directory
+
         Args:
             path (str): template path
             dest (str, optional): output path; if not provided will be computed
 
         Returns:
             Pageit: for method chaining
+
+        .. versionchanged:: 0.2.2
+           Added more template information (output, dirname, basedir).
         '''
         _context = '[MAKO]'
         name = osp.relpath(path, self.path)
@@ -262,7 +279,12 @@ class Pageit(object):
         dest = dest or strip_ext(path, self.args.ext)
         tmpl = self.tmpl.get_template(name)
         content, has_errors = '', False
-        page = Namespace(path=name)
+        page = Namespace(
+            path=name,
+            output=osp.relpath(dest, self.path),
+            dirname=osp.dirname(name),
+            basedir=osp.relpath(self.path, osp.dirname(path))
+        )
         try:
             if not self.args.dry_run:
                 content = tmpl.render_unicode(site=self.site, page=page)
@@ -411,13 +433,12 @@ def create_lookup(path=DEFAULT.path, tmp=None):
 
 
 def create_config(path=DEFAULT.config, env=DEFAULT.env, log=None):
-    '''Constructs a Namespace for attributes to pass to mako templates.
+    '''Constructs a :py:class:`~pageit.namespace.Namespace` for attributes to
+    pass to mako templates.
 
     The configuration file should be a list of keys mapped to key/value pairs.
     The load process first loads an environment called "default" and then
     extends those keys to include those in the given environment.
-
-    .. versionadded:: 0.2.1
 
     Args:
         path (str): YAML configuration file
@@ -425,11 +446,14 @@ def create_config(path=DEFAULT.config, env=DEFAULT.env, log=None):
         log (logging.Logger, optional): system logger
 
     Returns:
-        pageit.namespace.Namespace: namespace of environment attributes
+        pageit.namespace.Namespace: :py:class:`~pageit.namespace.Namespace`
+        of environment attributes
 
     Examples:
         >>> create_config('file.yml', 'local') == Namespace()
         True
+
+    .. versionadded:: 0.2.1
     '''
     _context = '[CONFIG]'
     log = log or create_logger()
