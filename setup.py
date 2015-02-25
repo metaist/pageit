@@ -29,7 +29,6 @@ def get_deps(path):
         deps.append(line)
     return deps
 
-    open('requirements.txt').read().strip().split('\n')
 
 OPTS = {
     'name': 'pageit',

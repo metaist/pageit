@@ -13,7 +13,7 @@ import re
 import sys
 
 # 3rd Party
-from argh import arg, ArghParser
+from argh import arg, expects_obj, ArghParser
 from mako.lookup import TemplateLookup
 import mako.exceptions
 import yaml
@@ -549,6 +549,7 @@ def strip_ext(path, ext):
     return path
 
 
+@expects_obj
 @arg('path', nargs='?', default=DEFAULT.path, help='path to process')
 @arg('-n', '--dry-run', default=False, help='simulate the process')
 @arg('-c', '--clean', default=False, help='remove generated files')

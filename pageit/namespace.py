@@ -107,6 +107,7 @@ class Namespace(collections.MutableMapping):
         >>> x is None
         True
     '''
+    # pylint: disable=too-few-public-methods
 
     def __init__(self, *args, **kwds):
         '''Construct a namespace from parameters.'''
@@ -348,6 +349,7 @@ class DeepNamespace(Namespace):
 
     .. versionadded:: 0.2.2
     '''
+    # pylint: disable=too-few-public-methods
 
     def __init__(self, *args, **kwds):
         '''Construct a namespace from parameters.
