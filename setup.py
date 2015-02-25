@@ -9,7 +9,7 @@ import sys
 
 # Package
 sys.path[0:0] = ['.']
-import pageit
+import pageit  # noqa
 
 
 def check_scripts(scripts):

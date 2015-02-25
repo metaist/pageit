@@ -47,19 +47,20 @@ class TestWatch(unittest.TestCase):
 
             # Initial
             os.utime(expected, None)
-            time.sleep(0.5)
+            time.sleep(0.75)
+            print 'COUNT: ', self.count
             self.assertEquals(1, self.count, 'should handle file change')
 
             # Stop
             watcher.stop()
             os.utime(expected, None)
-            time.sleep(0.5)
+            time.sleep(0.75)
             self.assertEquals(1, self.count,
                               'should not fire when observer is off')
 
             # Restart
             watcher.start()
             os.utime(expected, None)
-            time.sleep(0.5)
+            time.sleep(0.75)
             self.assertEquals(2, self.count,
                               'should fire when observer is back on')
